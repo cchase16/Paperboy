@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terminal Homepage</title>
+  <style>
+    :root {
+      --bg: #05080d;
+      --frame: #202b38;
+      --terminal: #1e2b3a;
+      --text: #d7dde7;
+      --muted: #8f9aac;
+      --green: #63d09a;
+      --amber: #f0a437;
+      --line: rgba(215, 221, 231, 0.12);
+      --shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 18px 55px rgba(0,0,0,0.55);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at top, #0c1018 0%, var(--bg) 58%);
+      color: var(--text);
+      font-family: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 36px 20px;
+    }
+
+    .shell-wrap {
+      width: min(1180px, 100%);
+      padding: 22px;
+      border-radius: 34px;
+      background: rgba(255,255,255,0.02);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 0 40px rgba(0,0,0,0.45);
+    }
+
+    .browser {
+      background: var(--frame);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .browser-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      background: #263241;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      opacity: 0.95;
+    }
+
+    .dot.red { background: #ef6a5b; }
+    .dot.yellow { background: #f4be4f; }
+    .dot.green { background: #62c554; }
+
+    .nav {
+      color: #a6b0bf;
+      display: flex;
+      gap: 10px;
+      font-size: 16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .address {
+      margin-left: auto;
+      margin-right: auto;
+      width: min(470px, 54vw);
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #d9e0e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .address .lock { opacity: 0.7; }
+    .actions { color: #a6b0bf; display: flex; gap: 14px; font-size: 18px; }
+
+    .terminal {
+      position: relative;
+      min-height: 760px;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(99,208,154,0.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0)),
+        var(--terminal);
+      overflow: hidden;
+    }
+
+    .terminal::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 100% 3px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .center-stage {
+      position: relative;
+      min-height: 704px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .command-shell {
+      width: min(960px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 24px;
+    }
+
+    .projects-header {
+      padding-top: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .tab-button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .tab-button:hover,
+    .tab-button:focus-visible {
+      border-color: rgba(99,208,154,0.28);
+      color: var(--text);
+      outline: none;
+    }
+
+    .tab-button.is-active {
+      color: var(--text);
+      border-color: rgba(99,208,154,0.34);
+      background: linear-gradient(180deg, rgba(99,208,154,0.12), rgba(255,255,255,0.03));
+      box-shadow: 0 0 0 1px rgba(99,208,154,0.06), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .tab-panel[hidden] {
+      display: none;
+    }
+
+    .tiles {
+      width: min(960px, 100%);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .tiles.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .tile {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 10px 30px rgba(0,0,0,0.22);
+    }
+
+    .tile:hover,
+    .tile:focus-visible {
+      transform: translateY(-3px);
+      border-color: rgba(99,208,154,0.35);
+      background: linear-gradient(180deg, rgba(99,208,154,0.08), rgba(255,255,255,0.03));
+      box-shadow: 0 0 0 1px rgba(99,208,154,0.08), 0 14px 34px rgba(0,0,0,0.28);
+      outline: none;
+    }
+
+    .tile-thumb {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: linear-gradient(135deg, rgba(99,208,154,0.16), rgba(255,255,255,0.04));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    .tile-thumb img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .tile-title {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--text);
+    }
+
+    .news-panel {
+      width: min(960px, 100%);
+      min-height: 420px;
+      padding: 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 10px 30px rgba(0,0,0,0.22);
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-start;
+    }
+
+    .avl-column {
+      width: min(340px, 100%);
+      display: grid;
+      gap: 16px;
+    }
+
+    .parkway-widget {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 10px 30px rgba(0,0,0,0.22);
+    }
+
+    .parkway-widget__title {
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .parkway-widget__meta {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .parkway-widget__row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .parkway-widget__label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .parkway-widget__value {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .parkway-widget__button {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+      color: var(--text);
+      font: inherit;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .parkway-widget__button.is-open {
+      color: #63d09a;
+    }
+
+    .parkway-widget__button.is-closed {
+      color: #ef6a5b;
+    }
+
+    .parkway-widget__button:disabled {
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .parkway-widget__button:focus-visible {
+      outline: none;
+      border-color: rgba(99,208,154,0.3);
+    }
+
+    .parkway-widget__updated {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .venue-widget {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 10px 30px rgba(0,0,0,0.22);
+    }
+
+    .venue-widget__title {
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .venue-widget__meta {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .venue-widget__label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .venue-widget__select {
+      width: 100%;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(19, 28, 39, 0.92);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .venue-widget__select:focus-visible {
+      outline: none;
+      border-color: rgba(99,208,154,0.3);
+    }
+
+    .venue-widget__status {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .venue-widget__status.is-error {
+      color: #efb6b0;
+    }
+
+    .venue-widget__cards {
+      display: grid;
+      gap: 10px;
+    }
+
+    .venue-card {
+      display: grid;
+      gap: 5px;
+      padding: 12px 13px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+    }
+
+    .venue-card:hover,
+    .venue-card:focus-visible {
+      border-color: rgba(99,208,154,0.32);
+      background: linear-gradient(180deg, rgba(99,208,154,0.08), rgba(255,255,255,0.025));
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .venue-card__title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .venue-card__date,
+    .venue-card__meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        display: block;
+        padding: 0;
+      }
+
+      .shell-wrap {
+        width: 100%;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .browser {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+
+      .browser-top { gap: 10px; }
+
+      .address {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .actions,
+      .nav span:first-child,
+      .nav span:nth-child(2) {
+        display: none;
+      }
+
+      .terminal {
+        min-height: calc(100vh - 58px);
+        padding: 20px 16px;
+      }
+
+      .center-stage {
+        min-height: calc(100vh - 98px);
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+
+      .news-panel {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell-wrap">
+    <div class="browser">
+      <div class="browser-top">
+        <div class="traffic" aria-hidden="true">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="nav" aria-hidden="true">
+          <span>▣</span>
+          <span>˅</span>
+          <span>‹</span>
+          <span>›</span>
+        </div>
+        <div class="address">
+          <span>🧑🏻</span>
+          <span>terminal.chrischase.dev</span>
+          <span class="lock">🔒</span>
+        </div>
+        <div class="actions" aria-hidden="true">
+          <span>⤴</span>
+          <span>＋</span>
+        </div>
+      </div>
+
+      <main class="terminal">
+        <div class="center-stage">
+          <section class="command-shell" aria-label="Sections">
+            <div class="projects-header">
+              <div class="tabs" role="tablist" aria-label="Site sections">
+                <button
+                  id="projectsTab"
+                  class="tab-button is-active"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="projectsPanel"
+                >
+                  Projects
+                </button>
+                <button
+                  id="newsTab"
+                  class="tab-button"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="newsPanel"
+                >
+                  AVL
+                </button>
+              </div>
+            </div>
+
+            <section id="projectsPanel" class="tab-panel" role="tabpanel" aria-labelledby="projectsTab">
+              <div id="projectTiles" class="tiles" aria-live="polite"></div>
+            </section>
+
+            <section id="newsPanel" class="tab-panel" role="tabpanel" aria-labelledby="newsTab" hidden>
+              <div class="news-panel">
+                <div class="avl-column">
+                  <section class="parkway-widget" aria-label="Blue Ridge Parkway status">
+                    <h2 class="parkway-widget__title">Blue Ridge Parkway</h2>
+                    <p class="parkway-widget__meta">Asheville mileposts 381.9-393.6</p>
+                    <div class="parkway-widget__row">
+                      <span class="parkway-widget__label">Status</span>
+                      <span id="parkwayStatusValue" class="parkway-widget__value">Loading</span>
+                      <button
+                        id="parkwayStatusButton"
+                        class="parkway-widget__button"
+                        type="button"
+                        aria-label="Blue Ridge Parkway details"
+                        disabled
+                      >
+                        ...
+                      </button>
+                    </div>
+                  </section>
+
+                  <section class="venue-widget" aria-label="Asheville venue events">
+                    <h2 class="venue-widget__title">Local Venue Events</h2>
+                    <p class="venue-widget__meta">Pick a venue to load compact event cards from its official calendar.</p>
+                    <label class="venue-widget__label" for="venueSelect">Venue</label>
+                    <select id="venueSelect" class="venue-widget__select">
+                      <option value="asheville-yards">Asheville Yards</option>
+                      <option value="orange-peel">The Orange Peel</option>
+                      <option value="grey-eagle">The Grey Eagle</option>
+                      <option value="harrahs-cherokee-center">Harrah's Cherokee Center</option>
+                      <option value="asheville-music-hall">Asheville Music Hall</option>
+                      <option value="revival-asheville">Revival Asheville</option>
+                    </select>
+                    <p id="venueStatus" class="venue-widget__status">Open the AVL tab to load venue events.</p>
+                    <div id="venueCards" class="venue-widget__cards" aria-live="polite"></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    const tilesEl = document.getElementById('projectTiles');
+    const projectsTab = document.getElementById('projectsTab');
+    const newsTab = document.getElementById('newsTab');
+    const projectsPanel = document.getElementById('projectsPanel');
+    const newsPanel = document.getElementById('newsPanel');
+    const parkwayStatusValue = document.getElementById('parkwayStatusValue');
+    const parkwayStatusButton = document.getElementById('parkwayStatusButton');
+    const venueSelect = document.getElementById('venueSelect');
+    const venueStatus = document.getElementById('venueStatus');
+    const venueCards = document.getElementById('venueCards');
+
+    let projects = [];
+    let projectsLoaded = false;
+    let parkwayActionUrl = '';
+    let venueEventsLoaded = false;
+    let venueRequestId = 0;
+
+    const placeholderSVG = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#2f4d4f"/>
+            <stop offset="100%" stop-color="#1f2b38"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="500" fill="url(#g)"/>
+        <rect x="40" y="40" width="720" height="420" rx="30" fill="none" stroke="rgba(255,255,255,0.14)"/>
+        <circle cx="220" cy="190" r="55" fill="rgba(255,255,255,0.10)"/>
+        <path d="M160 350 L300 240 L410 330 L520 220 L640 350 Z" fill="rgba(255,255,255,0.12)"/>
+        <text x="400" y="420" text-anchor="middle" fill="#d7dde7" font-family="Menlo, Monaco, Consolas, monospace" font-size="34">Image coming soon</text>
+      </svg>
+    `);
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function isMobileDevice() {
+      const userAgent = navigator.userAgent || '';
+      const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+      const uaMobile = !!(navigator.userAgentData && navigator.userAgentData.mobile);
+      const coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      const touchPoints = Number(navigator.maxTouchPoints || 0);
+      const touchCapable = ('ontouchstart' in window) || touchPoints > 0;
+      const smallScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 950;
+      return mobileUA || uaMobile || (touchCapable && coarsePointer && smallScreen);
+    }
+
+    function projectDisplayName(project) {
+      return project.label || project.id || 'Untitled Project';
+    }
+
+    async function loadProjectsFromXML() {
+      if (projectsLoaded) return projects;
+
+      const response = await fetch('siteconfig.xml', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+      if (xml.querySelector('parsererror')) throw new Error('Invalid XML');
+
+      const getChildText = (parent, tagName) => {
+        const match = Array.from(parent.children).find((child) => child.tagName && child.tagName.toLowerCase() === tagName.toLowerCase());
+        return (match?.textContent || '').trim();
+      };
+
+      projects = Array.from(xml.querySelectorAll('projects > project')).map((projectNode) => ({
+        id: (projectNode.getAttribute('id') || '').trim(),
+        label: getChildText(projectNode, 'labelTxt'),
+        url: getChildText(projectNode, 'url'),
+        thumbnailImage: getChildText(projectNode, 'thumbnailImage').replace(/\\/g, '/'),
+        okForMobile: /^yes$/i.test(getChildText(projectNode, 'okforMobile'))
+      })).filter((project) => project.url);
+
+      projectsLoaded = true;
+      return projects;
+    }
+
+    function renderTiles(projectList = projects) {
+      if (!projectList.length) {
+        tilesEl.innerHTML = '';
+        tilesEl.classList.remove('visible');
+        return;
+      }
+
+      tilesEl.innerHTML = projectList.map((project) => {
+        const thumbSrc = project.thumbnailImage || `data:image/svg+xml;charset=UTF-8,${placeholderSVG}`;
+        return `
+        <button class="tile" type="button" data-url="${escapeHTML(project.url)}" aria-label="Open ${escapeHTML(projectDisplayName(project))}">
+          <span class="tile-thumb" aria-hidden="true">
+            <img src="${escapeHTML(thumbSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,${placeholderSVG}'" />
+          </span>
+          <span class="tile-title">${escapeHTML(projectDisplayName(project))}</span>
+        </button>
+      `;
+      }).join('');
+
+      tilesEl.classList.add('visible');
+    }
+
+    function setParkwayWidgetStatus(status) {
+      parkwayStatusValue.textContent = status;
+      parkwayStatusButton.classList.remove('is-open', 'is-closed');
+
+      if (status === 'Closed') {
+        parkwayStatusButton.textContent = '!';
+        parkwayStatusButton.classList.add('is-closed');
+        parkwayStatusButton.disabled = false;
+        return;
+      }
+
+      if (status === 'Open') {
+        parkwayStatusButton.textContent = '\u2713';
+        parkwayStatusButton.classList.add('is-open');
+        parkwayStatusButton.disabled = true;
+        return;
+      }
+
+      parkwayStatusButton.textContent = '...';
+      parkwayStatusButton.disabled = true;
+    }
+
+    async function loadParkwayStatus() {
+      try {
+        const response = await fetch('/api/blue-ridge-parkway-status', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        parkwayActionUrl = payload.actionUrl || '';
+        setParkwayWidgetStatus(payload.status === 'Closed' ? 'Closed' : 'Open');
+      } catch (error) {
+        parkwayActionUrl = '';
+        setParkwayWidgetStatus('Unavailable');
+      }
+    }
+
+    function setVenueStatus(message, isError = false) {
+      venueStatus.textContent = message;
+      venueStatus.classList.toggle('is-error', isError);
+    }
+
+    function clearVenueCards() {
+      venueCards.innerHTML = '';
+    }
+
+    function renderVenueCards(events) {
+      if (!events.length) {
+        return;
+      }
+
+      venueCards.innerHTML = events.map((eventItem) => {
+        const metaMarkup = eventItem.metaText
+          ? `<span class="venue-card__meta">${escapeHTML(eventItem.metaText)}</span>`
+          : '';
+
+        return `
+          <a class="venue-card" href="${escapeHTML(eventItem.url)}">
+            <span class="venue-card__title">${escapeHTML(eventItem.title)}</span>
+            <span class="venue-card__date">${escapeHTML(eventItem.dateText || 'Upcoming event')}</span>
+            ${metaMarkup}
+          </a>
+        `;
+      }).join('');
+    }
+
+    async function loadVenueEvents(venueId) {
+      const requestId = ++venueRequestId;
+      clearVenueCards();
+      setVenueStatus('Loading events...');
+
+      try {
+        const response = await fetch(`/api/venue-events?venue=${encodeURIComponent(venueId)}`, {
+          cache: 'no-store'
+        });
+        const payload = await response.json();
+
+        if (requestId !== venueRequestId) {
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(payload.error || `HTTP ${response.status}`);
+        }
+
+        renderVenueCards(payload.events || []);
+
+        if (payload.events && payload.events.length) {
+          setVenueStatus(`${payload.label} - ${payload.events.length} upcoming events`);
+          return;
+        }
+
+        setVenueStatus(`No upcoming events found for ${payload.label}.`);
+      } catch (error) {
+        if (requestId !== venueRequestId) {
+          return;
+        }
+
+        clearVenueCards();
+        setVenueStatus('Venue events are unavailable right now.', true);
+      }
+    }
+
+    function setActiveTab(tabName) {
+      const showingProjects = tabName === 'projects';
+
+      projectsTab.classList.toggle('is-active', showingProjects);
+      projectsTab.setAttribute('aria-selected', showingProjects ? 'true' : 'false');
+      newsTab.classList.toggle('is-active', !showingProjects);
+      newsTab.setAttribute('aria-selected', showingProjects ? 'false' : 'true');
+
+      projectsPanel.hidden = !showingProjects;
+      newsPanel.hidden = showingProjects;
+
+      if (!showingProjects && !venueEventsLoaded) {
+        venueEventsLoaded = true;
+        loadVenueEvents(venueSelect.value);
+      }
+    }
+
+    tilesEl.addEventListener('click', (event) => {
+      const tile = event.target.closest('[data-url]');
+      if (!tile) return;
+      const url = tile.getAttribute('data-url');
+      if (url) window.location.href = url;
+    });
+
+    parkwayStatusButton.addEventListener('click', () => {
+      if (parkwayStatusButton.disabled || !parkwayActionUrl) return;
+      window.location.href = parkwayActionUrl;
+    });
+
+    venueSelect.addEventListener('change', () => {
+      loadVenueEvents(venueSelect.value);
+    });
+
+    projectsTab.addEventListener('click', () => setActiveTab('projects'));
+    newsTab.addEventListener('click', () => setActiveTab('news'));
+
+    async function initializePageMode() {
+      try {
+        await Promise.all([loadProjectsFromXML(), loadParkwayStatus()]);
+        const projectList = isMobileDevice()
+          ? projects.filter((project) => project.okForMobile)
+          : projects;
+        renderTiles(projectList);
+        setActiveTab('projects');
+      } catch (error) {
+        console.error('Unable to load project tiles:', error);
+        tilesEl.innerHTML = '';
+        tilesEl.classList.remove('visible');
+        setActiveTab('projects');
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializePageMode, { once: true });
+    } else {
+      initializePageMode();
+    }
+
+    window.addEventListener('pageshow', initializePageMode);
+    window.addEventListener('resize', initializePageMode);
+  </script>
+</body>
+</html>
